@@ -342,7 +342,7 @@ def add_basics(resume,res_map):
          
     regex = '^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$'
 
-    if res_map["basics"]["email"] == '' or re.search(regex,res_map["basics"]["email"]):
+    if res_map["basics"]["email"] == '' or not re.search(regex,res_map["basics"]["email"]):
         res_map["basics"]["email"] = "johdoe@gmail.com"
    
 
