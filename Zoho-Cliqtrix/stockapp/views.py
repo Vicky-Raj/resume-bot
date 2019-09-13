@@ -315,7 +315,13 @@ def add_basics(resume,res_map):
             "network":profile.network,
             "username":profile.username,
             "url":profile.url
-        })        
+        })
+         
+    regex = '^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$'
+
+    if res_map["basics"]["email"] == '' or re.search(regex,res_map["basics"]["email"]):
+        res_map["basics"]["email"] = "johdoe@gmail.com"
+   
 
 def add_work(resume,res_map):
     res_map["work"] = []
@@ -390,7 +396,7 @@ def add_refs(resume,res_map):
         }for ref in resume.references.all()
     ]
 
-def compile_resume(resume):
+def compile_resume(resume,theme):
     dir_name = os.path.join(os.getcwd(),"media")
     if resume.file != None:
         os.remove(os.path.join(dir_name,resume.file))
@@ -407,7 +413,7 @@ def compile_resume(resume):
     with open("resume.json","w") as res:
         json.dump(res_map,res)
     file_name = f"{str(uuid.uuid4())}.pdf"
-    os.system(f"resume export {os.path.join(dir_name,file_name)} --theme flat")
+    os.system(f"resume export {os.path.join(dir_name,file_name)} --theme {theme}")
     os.remove("resume.json")
     resume.file = file_name
     resume.save()
@@ -420,7 +426,7 @@ class CompileResumeView(APIView):
         client = Client.objects.get(email=request.POST.get("email"))
         resume = client.resume_set.all().filter(name=request.POST.get("name")).first()
         return Response({
-            "name":compile_resume(resume)
+            "name":compile_resume(resume,request.POST.get("theme"))
             }
         )
 
