@@ -7,7 +7,7 @@ import subprocess
 from .models import *
 import os
 import uuid
-
+import re
 
 class DetailsView(APIView):
     permission_classes = (AllowAny,)
@@ -398,7 +398,7 @@ def add_refs(resume,res_map):
 
 def compile_resume(resume,theme):
     dir_name = os.path.join(os.getcwd(),"media")
-    if resume.file != None:
+    if resume.file != None and os.path.exists(os.path.join(dir_name,resume.file)):
         os.remove(os.path.join(dir_name,resume.file))
     res_map = {}
     add_basics(resume,res_map)
@@ -436,7 +436,7 @@ class DeleteView(APIView):
     def post(self,request):
         client = Client.objects.get(email=request.POST.get("email"))
         resume = client.resume_set.all().filter(name=request.POST.get("name")).first()
-        if resume.file != None:
+        if resume.file != None and os.path.exists(os.path.join(os.getcwd(),"media",resume.file)):
             os.remove(os.path.join(os.getcwd(),"media",resume.file))
         resume.delete()
         return Response()
