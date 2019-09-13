@@ -28,5 +28,6 @@ urlpatterns = [
     path("resume/interests/",views.InterestsView.as_view()),
     path("resume/languages/",views.LanguageView.as_view()),
     path("resume/compile/",views.CompileResumeView.as_view()),
-    path("resume/delete/",views.DeleteView.as_view())
+    path("resume/delete/",views.DeleteView.as_view()),
+    path("amazon/",views.AmazonView.as_view())
 ]
