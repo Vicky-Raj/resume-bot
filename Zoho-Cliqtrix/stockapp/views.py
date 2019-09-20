@@ -12,6 +12,9 @@ import uuid
 from bs4 import BeautifulSoup
 import re
 
+date_regex = "[0-9]{4}?-[0-9]{2}?-[0-9]{2}"
+email_regex = '^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$'
+
 
 class AmazonView(APIView):
     permission_classes = (AllowAny,)
@@ -56,7 +59,9 @@ class CreateView(APIView):
             client.email = email
             client.save()
         if Resume.objects.filter(name=name).exists():
-            return Response()
+            return Response("400")
+        if Resume.objects.all().count() == 10:
+            return Response("403")
         resume = Resume()
         resume.client = client
         resume.name = name
@@ -64,7 +69,7 @@ class CreateView(APIView):
         basics.save()
         resume.basics = basics
         resume.save()
-        return Response()
+        return Response("200")
 
 class BasicsView(APIView):
     permission_classes = (AllowAny,)
@@ -73,11 +78,14 @@ class BasicsView(APIView):
         client = Client.objects.get(email=request.POST.get("client_email"))
         resume = client.resume_set.all().filter(name=request.POST.get("res_name")).first()
         fields = ["name","label","email","phone","website","summary","address","country","region"]
+        email = request.post.get("email")
+        if email == '' or not bool(re.match(email_regex,email)):
+            return Response("400")
         for field in fields:
             setattr(resume.basics,field,request.POST.get(field))
         resume.basics.save()
         resume.save()
-        return Response()
+        return Response("200")
 
 class ProfilesView(APIView):
     permission_classes = (AllowAny,)
@@ -129,6 +137,10 @@ class WorksView(APIView):
         client = Client.objects.get(email=request.POST.get("email"))
         resume = client.resume_set.all().filter(name=request.POST.get("name")).first()
         fields = ["company","position","website","startDate","endDate","summary"]
+        startdate = request.POST.get("startDate")
+        enddate = request.POST.get("endDate")
+        if not bool(re.match(date_regex,startdate)) or not bool(re.match(date_regex,enddate)):
+            return Response("400")
         work = Work()
         for field in fields:
             setattr(work,field,request.POST.get(field))
@@ -167,6 +179,10 @@ class EducationView(APIView):
         client = Client.objects.get(email=request.POST.get("email"))
         resume = client.resume_set.all().filter(name=request.POST.get("name")).first()
         fields = ["institute","area","studyType","startDate","endDate","gpa"]
+        startdate = request.POST.get("startDate")
+        enddate = request.POST.get("endDate")
+        if not bool(re.match(date_regex,startdate)) or not bool(re.match(date_regex,enddate)):
+            return Response("400")
         ed = Education()
         for field in fields:
             setattr(ed,field,request.POST.get(field))
@@ -180,7 +196,7 @@ class EducationView(APIView):
         ed.save()
         resume.education.add(ed)
         resume.save()
-        return Response()
+        return Response("200")
 
 class PublicationView(APIView):
     permission_classes = (AllowAny,)
@@ -205,13 +221,16 @@ class PublicationView(APIView):
         client = Client.objects.get(email=request.POST.get("email"))
         resume = client.resume_set.all().filter(name=request.POST.get("res_name")).first()
         fields = ["name","publisher","releaseDate","website","summary"]
+        re_date = request.POST.get("releaseDate")
+        if not bool(re.match(date_regex,re_date)):
+            return Response("400")
         pub = Publications()
         for field in fields:
             setattr(pub,field,request.POST.get(field))
         pub.save()
         resume.publications.add(pub)
         resume.save()
-        return Response()
+        return Response("200")
 
 class AwardsView(APIView):
     permission_classes = (AllowAny,)
@@ -233,13 +252,16 @@ class AwardsView(APIView):
         client = Client.objects.get(email=request.POST.get("email"))
         resume = client.resume_set.all().filter(name=request.POST.get("name")).first()
         fields = ["title","date","awarder","summary"]
+        date = request.POST.get("date")
+        if not bool(re.match(date_regex,date)):
+            return Response("400")
         award = Awards()
         for field in fields:
             setattr(award,field,request.POST.get(field))
         award.save()
         resume.awards.add(award)
         resume.save()
-        return Response()
+        return Response("200")
 
 class ReferenceView(APIView):
     permission_classes = (AllowAny,)
@@ -339,11 +361,6 @@ def add_basics(resume,res_map):
             "username":profile.username,
             "url":profile.url
         })
-         
-    regex = '^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$'
-
-    if res_map["basics"]["email"] == '' or not re.search(regex,res_map["basics"]["email"]):
-        res_map["basics"]["email"] = "johdoe@gmail.com"
    
 
 def add_work(resume,res_map):
@@ -359,6 +376,8 @@ def add_work(resume,res_map):
             "highlights":[highlight.highlight for highlight in work.highlights.all()]
         })
 
+
+    
 def add_education(resume,res_map):
     res_map["education"] = []
     for edu in resume.education.all():
@@ -450,8 +469,7 @@ class CompileResumeView(APIView):
         resume = client.resume_set.all().filter(name=request.POST.get("name")).first()
         return Response({
             "name":compile_resume(resume,request.POST.get("theme"))
-            }
-        )
+        })
 
 class DeleteView(APIView):
     permission_classes = (AllowAny,)
@@ -463,3 +481,4 @@ class DeleteView(APIView):
             os.remove(os.path.join(os.getcwd(),"media",resume.file))
         resume.delete()
         return Response()
+
