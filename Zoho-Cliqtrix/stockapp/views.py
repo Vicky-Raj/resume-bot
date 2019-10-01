@@ -51,8 +51,8 @@ class CreateView(APIView):
     permission_classes = (AllowAny,)
 
     def post(self, request):
-        email = request.POST.get("email")
-        name = request.POST.get("name")
+        email = request.POST.get("client_email")
+        name = request.POST.get("res_name")
         client,created = Client.objects.get_or_create(email=email)
         if created:
             client.email = email
@@ -61,12 +61,19 @@ class CreateView(APIView):
             return Response(400)
         if Resume.objects.all().count() == 9:
             return Response(403)
+        if request.POST.get("email") == '' or not bool(re.match(email_regex,request.POST.get("email"))):
+            return Response(405)
         resume = Resume()
         resume.client = client
         resume.name = name
         basics = Basics()
         basics.save()
         resume.basics = basics
+        resume.save()
+        fields = ["name","label","email","phone","website","summary","address","country","region"]
+        for field in fields:
+            setattr(resume.basics,field,request.POST.get(field))
+        resume.basics.save()
         resume.save()
         return Response(200)
 
